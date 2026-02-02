@@ -104,7 +104,8 @@ upload_public_key() {
         echo "尝试使用 ssh-copy-id..."
         # 使用 Host 名称连接，SSH 会自动读取 config 中的配置（包括旧的密钥）
         # 这样可以用旧密钥认证，然后添加新公钥
-        if ssh-copy-id -i "$public_key_file" -f "$host_name" 2>&1; then
+        # 通过 < /dev/tty 确保可以从终端读取密码
+        if ssh-copy-id -i "$public_key_file" -f "$host_name" < /dev/tty 2>&1; then
             echo "✓ 公钥上传成功（使用 ssh-copy-id）"
             return 0
         fi
@@ -116,7 +117,9 @@ upload_public_key() {
     echo "尝试手动上传公钥..."
     echo "提示: 如果服务器需要密码认证，请输入密码"
     
-    local ssh_opts="-o StrictHostKeyChecking=no -o ConnectTimeout=10"
+    # 使用 -t 强制分配伪终端，确保可以从终端读取密码
+    # 同时通过 < /dev/tty 确保输入从终端读取
+    local ssh_opts="-t -o StrictHostKeyChecking=no -o ConnectTimeout=10"
     
     # 创建远程目录（如果不存在）并追加公钥
     # 检查公钥是否已存在，避免重复添加
@@ -134,7 +137,8 @@ upload_public_key() {
     
     # 使用 Host 名称连接，SSH 会自动使用 config 中的配置
     # 如果 config 中有旧的 IdentityFile，会使用它进行认证
-    if ssh $ssh_opts "$host_name" "$remote_command" 2>&1; then
+    # 通过 < /dev/tty 确保可以从终端读取密码
+    if ssh $ssh_opts "$host_name" "$remote_command" < /dev/tty 2>&1; then
         echo "✓ 公钥上传成功（手动方式）"
         return 0
     else
@@ -256,6 +260,8 @@ for idx_str in "${SELECTED_INDICES[@]}"; do
             echo "跳过 $host_name"
             continue
         fi
+        # 用户确认覆盖，删除旧文件以避免 ssh-keygen 的提示
+        rm -f "$identity_file" "${identity_file}.pub"
     fi
     
     # 生成椭圆曲线密钥（使用 ed25519）
@@ -264,7 +270,8 @@ for idx_str in "${SELECTED_INDICES[@]}"; do
     echo "私钥路径: $identity_file"
     
     # 生成密钥（不设置密码短语，使用 -N ""）
-    if ssh-keygen -t ed25519 -f "$identity_file" -N "" -C "generated_for_${host_name}"; then
+    # 通过 < /dev/tty 确保可以从终端读取任何提示（虽然理论上不应该有）
+    if ssh-keygen -t ed25519 -f "$identity_file" -N "" -C "generated_for_${host_name}" < /dev/tty 2>&1; then
         # 设置权限
         chmod 600 "$identity_file"
         chmod 644 "${identity_file}.pub"
