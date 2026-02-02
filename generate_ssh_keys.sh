@@ -201,7 +201,7 @@ echo "=========================================="
 
 # 获取用户选择
 echo ""
-read -p "请选择要生成密钥的设备编号（多个用逗号分隔，如: 1,3,5）: " selection
+read -p "请选择要生成密钥的设备编号（多个用逗号分隔，如: 1,3,5）: " selection < /dev/tty
 
 if [ -z "$selection" ]; then
     echo "未选择任何设备，退出"
@@ -251,7 +251,7 @@ for idx_str in "${SELECTED_INDICES[@]}"; do
     # 检查密钥是否已存在
     if [ -f "$identity_file" ]; then
         echo ""
-        read -p "密钥文件 $identity_file 已存在，是否覆盖？(y/N): " overwrite
+        read -p "密钥文件 $identity_file 已存在，是否覆盖？(y/N): " overwrite < /dev/tty
         if [[ ! "$overwrite" =~ ^[Yy]$ ]]; then
             echo "跳过 $host_name"
             continue
@@ -276,7 +276,7 @@ for idx_str in "${SELECTED_INDICES[@]}"; do
         # 询问是否上传公钥到服务器
         if [ -n "$hostname" ]; then
             echo ""
-            read -p "是否将公钥上传到服务器 $host_name ($hostname)？(Y/n): " upload_choice
+            read -p "是否将公钥上传到服务器 $host_name ($hostname)？(Y/n): " upload_choice < /dev/tty
             if [[ ! "$upload_choice" =~ ^[Nn]$ ]]; then
                 upload_public_key "$host_name" "$hostname" "$user" "$port" "$identity_file"
             else
